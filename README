@@ -1,0 +1,5 @@
+Usage:
+
+python prose-analysis.py textfilename
+
+textfilename is a plain text file containing the prose to be analysed
