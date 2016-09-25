@@ -13,3 +13,7 @@ Writes output to a html file.
 
 TODO:
 - compare word frequencies to the frequencies in a corpus of texts
+- repeated sentence starts
+- adverbs
+- average sentence length, variability in sentence length
+- US/UK spelling consistency
