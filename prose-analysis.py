@@ -4,6 +4,7 @@ import re
 sys.path.insert(1,'/Library/Python/2.7/site-packages')
 import nltk
 from nltk.corpus import stopwords
+import numpy as np
 
 # usage: python prose-analysis.py file-to-be-analysed
 
@@ -37,9 +38,9 @@ def main():
   wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
   wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
 
-  #find overlong sentences
-  longSentenceHtml = findLongSentences(processed, longSentenceCut)
-  of.write(longSentenceHtml)
+  #find overlong sentences, get mean and stdev of sentence length
+  sentenceLengthHtml = analyseSentenceLength(processed, longSentenceCut)
+  of.write(sentenceLengthHtml)
 
   #find most frequent words (not including stopwords)
   mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
@@ -77,8 +78,8 @@ def writeHtmlFooter(of):
   of.write('</body>\n')
   of.write('</html>\n')
 
-def findLongSentences(textString, longSentenceCut):
-  '''identify sentences that contain more than longSentenceCut words and print them with a color code that depends on sentence length'''
+def analyseSentenceLength(textString, longSentenceCut):
+  '''identify sentences that contain more than longSentenceCut words and print them with a color code that depends on sentence length; get mean and standard deviation of sentence length'''
   
   #color wordcount lightorange, orange or red depending on how far over longSentenceCut the sentence length is
   colorMap = {(longSentenceCut,int(longSentenceCut*1.2)): '#FFBF00', (int(longSentenceCut*1.2),int(longSentenceCut*1.4)): '#FF8000', (int(longSentenceCut*1.4),100000): '#FF0000'} #TODO find nicer solution
@@ -87,12 +88,14 @@ def findLongSentences(textString, longSentenceCut):
   sentTokens = nltk.sent_tokenize(textString)
   print 'Found ',len(sentTokens),' sentences'
 
-  longSentenceHtml = '<h2>Long sentences (> '+str(longSentenceCut)+' words)</h2>\n'
+  sentenceLengthHtml = '<h2>Long sentences (> '+str(longSentenceCut)+' words)</h2>\n'
   nLongSentences = 0
+  sentenceLengths = []
   #break sentences into words
   for sentence in sentTokens:
     wordTokens = nltk.word_tokenize(sentence)
     nWords = len(wordTokens)
+    sentenceLengths.append(nWords)
     if nWords > longSentenceCut:
       #get printing color
       for rangeTuple in colorMap.keys():
@@ -100,10 +103,19 @@ def findLongSentences(textString, longSentenceCut):
           color = colorMap[rangeTuple]
       #print to html
       html = '<p>' + sentence + ' - <span style="color:' + color + ';">' + str(nWords) + ' words</span></p>\n'
-      longSentenceHtml += html
+      sentenceLengthHtml += html
       nLongSentences += 1
+
   print 'Found ',nLongSentences,' long sentences'
-  return longSentenceHtml
+
+  sentenceLengths = np.asarray(sentenceLengths)
+  sentenceLengthHtml += '<h2>Sentence length variability</h2>\n'
+  sentenceLengthHtml += '<p>Longest sentence: ' + str(sentenceLengths.max()) + ' words</p>\n'
+  sentenceLengthHtml += '<p>Shortest sentence: ' + str(sentenceLengths.min()) + ' words</p>\n'
+  sentenceLengthHtml += '<p>Average sentence length: ' + '%4.2f' % sentenceLengths.mean() + ' words</p>\n'
+  sentenceLengthHtml += '<p>Standard deviation of sentence length: ' + '%4.2f' % sentenceLengths.std() + ' words</p>\n'
+
+  return sentenceLengthHtml
 
 def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExcluded=True):
   '''find all words which appear more than wordFreqCutFraction*nTotalWords times in the text, i.e. the number of occurences above which a word is defined as frequent is a function of the total number of words in the document'''
