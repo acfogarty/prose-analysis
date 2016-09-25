@@ -3,3 +3,12 @@ Usage:
 python prose-analysis.py textfilename
 
 textfilename is a plain text file containing the prose to be analysed
+
+------------------------------------------------------
+
+Finds over-long sentences.
+Finds commonly used words.
+Writes output to a html file.
+
+TODO:
+- compare word frequencies to the frequencies in a corpus of texts

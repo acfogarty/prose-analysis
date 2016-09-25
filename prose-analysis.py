@@ -8,9 +8,12 @@ from nltk.corpus import stopwords
 # global variables
 stopwords = stopwords.words('english')
 stopwords += ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m"]
-longSentenceCut = 45 #sentences are identified as 'too long' if nwords > longSentenceCut
 
 def main():
+
+  #parameters controlling analysis
+  longSentenceCut = 45 #sentences are identified as 'too long' if nwords > longSentenceCut
+  wordFreqCutFraction = 0.004 #all word which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
 
   #start html file
   of = open('prose-analysis-output.html','w')
@@ -26,12 +29,16 @@ def main():
   #process file contents
   processed = ''.join(i for i in raw if ord(i)<128) #clean non-ascii characters
   processedLower = raw.lower()
+  wordTokens = nltk.word_tokenize(processedLower)
+  wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
+
+  #find overlong sentences
   longSentenceHtml = findLongSentences(processed, longSentenceCut)
   of.write(longSentenceHtml)
-  #wordTokens = nltk.word_tokenize(processed)
-  #wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
-  #text = nltk.Text(wordTokensNoStopwords)
-  #fdist = nltk.FreqDist(text)
+
+  #find most frequent words (not including stopwords)
+  mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
+  of.write(mostFrequentWordsHtml)
 
   #finish html file
   writeHtmlFooter(of)
@@ -57,6 +64,7 @@ def writeHtmlHeader(of):
 
 def writeHtmlFooter(of):
   '''write the end of the html output file'''
+  of.write('\n')
   of.write('</body>\n')
   of.write('</html>\n')
 
@@ -82,11 +90,41 @@ def findLongSentences(textString, longSentenceCut):
         if nWords > rangeTuple[0] and nWords <= rangeTuple[1]:
           color = colorMap[rangeTuple]
       #print to html
-      html = '<p>' + sentence + ' - <span style="color:' + color + ';">' + str(nWords) + ' words</span></p>'
+      html = '<p>' + sentence + ' - <span style="color:' + color + ';">' + str(nWords) + ' words</span></p>\n'
       longSentenceHtml += html
       nLongSentences += 1
   print 'Found ',nLongSentences,' long sentences'
   return longSentenceHtml
+
+def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExcluded=True):
+  '''find all words which appear more than wordFreqCutFraction*nTotalWords times in the text, i.e. the number of occurences above which a word is defined as frequent is a function of the total number of words in the document'''
+
+  mostFrequentWordsHtml = '<h2>Most frequently used words</h2>\n'
+  nTotalWords = len(wordTokensNoStopwords)
+  print 'Found ',nTotalWords,' words'
+  wordFreqCut = int(nTotalWords*wordFreqCutFraction)
+  print 'Printing all words that occur at least ',wordFreqCut,' times'
+  mostFrequentWordsHtml += '<p>Printing all words that occur at least ' + str(wordFreqCut) + ' times</p>'
+  if stopwordsExcluded: mostFrequentWordsHtml += "<p>Stopwords (such as 'the', 'a', 'in', 'of' etc.) are not included</p>\n"
+
+  #build frequency dictionary
+  text = nltk.Text(wordTokensNoStopwords)
+  fdist = nltk.FreqDist(text)
+
+  #get words which appear >= wordFreqCut times and print to html
+  nMostCommon = 1000
+  reachedCut = False #for checking if nMostCommon was big enough TODO is there a more elegant way to do this?
+  for word,freq in fdist.most_common(1000): 
+    if freq < wordFreqCut:
+      reachedCut = True
+      break
+    html = '<p>' + word + ': ' + str(freq) + '</p>\n'
+    mostFrequentWordsHtml += html
+  if not reachedCut:
+    print 'Error! the value of nMostCommon in findFrequentWords was not big enough'
+    quit()
+
+  return mostFrequentWordsHtml
 
 if __name__ == '__main__':
   main() 
