@@ -5,21 +5,25 @@ sys.path.insert(1,'/Library/Python/2.7/site-packages')
 import nltk
 from nltk.corpus import stopwords
 
+# usage: python prose-analysis.py file-to-be-analysed
+
 # global variables
 stopwords = stopwords.words('english')
-stopwords += ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m"]
+punctuation = ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m",'``','"','--',"''"]
+stopwords += punctuation
 
 def main():
 
   #parameters controlling analysis
   longSentenceCut = 45 #sentences are identified as 'too long' if nwords > longSentenceCut
-  wordFreqCutFraction = 0.004 #all word which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
+  wordFreqCutFraction = 0.004 #all words, 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
+  ngramMax = 7 #find most common n-grams, from 2-grams to ngramMax-grams
 
   #start html file
   of = open('prose-analysis-output.html','w')
   writeHtmlHeader(of)
 
-  #get file contents
+  #get prose file contents
   filename = sys.argv[1]
   of.write('<h1>Analysis of the file '+filename+'</h1>\n')
   ff = io.open(filename,'r',encoding="latin-1")
@@ -31,6 +35,7 @@ def main():
   processedLower = raw.lower()
   wordTokens = nltk.word_tokenize(processedLower)
   wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
+  wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
 
   #find overlong sentences
   longSentenceHtml = findLongSentences(processed, longSentenceCut)
@@ -39,6 +44,10 @@ def main():
   #find most frequent words (not including stopwords)
   mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
   of.write(mostFrequentWordsHtml)
+
+  #find most frequent n-grams
+  mostFrequentNgramsHtml = findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction)
+  of.write(mostFrequentNgramsHtml)
 
   #finish html file
   writeHtmlFooter(of)
@@ -114,7 +123,7 @@ def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExclu
   #get words which appear >= wordFreqCut times and print to html
   nMostCommon = 1000
   reachedCut = False #for checking if nMostCommon was big enough TODO is there a more elegant way to do this?
-  for word,freq in fdist.most_common(1000): 
+  for word,freq in fdist.most_common(nMostCommon): 
     if freq < wordFreqCut:
       reachedCut = True
       break
@@ -125,6 +134,39 @@ def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExclu
     quit()
 
   return mostFrequentWordsHtml
+
+def findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction):
+  '''find all 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text, and all >3-grams which appear more than once'''
+
+  mostFrequentNgramsHtml = '<h2>Most frequently used n-grams</h2>\n'
+  nTotalWords = len(wordTokensNoPunctuation)
+  wordFreqCut = int(nTotalWords*wordFreqCutFraction)
+  freqCut = {2: wordFreqCut, 3: wordFreqCut} #cut printing at different frequencies for different values of n 
+  for n in xrange(4,ngramMax+1):
+    freqCut[n] = 2
+  print 'Printing all 2-grams and 3-grams that occur at least ',wordFreqCut,' times'
+  print 'Printing all >3-grams that occur at least twice'
+
+  #for each value of n, get n-grams which appear >= freqCut[n] times and print to html
+  for n in xrange(2,ngramMax+1):
+    mostFrequentNgramsHtml += '<h3>' + str(n) + '-grams</h3>\n'
+    fdist = nltk.FreqDist(nltk.ngrams(wordTokensNoPunctuation, n))
+    nMostCommon = 1000
+    reachedCut = False #for checking if nMostCommon was big enough TODO is there a more elegant way to do this?
+    for ngram,freq in fdist.most_common(nMostCommon): 
+      if freq < freqCut[n]:
+        reachedCut = True
+        break
+      html = '<p>'
+      for word in ngram:
+        html += word + ' '
+      html += ': ' + str(freq) + '</p>\n'
+      mostFrequentNgramsHtml += html
+    if not reachedCut:
+      print 'Error! the value of nMostCommon in findFrequentNgrams was not big enough for n = ',n
+      quit()
+
+  return mostFrequentNgramsHtml
 
 if __name__ == '__main__':
   main() 

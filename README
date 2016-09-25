@@ -8,6 +8,7 @@ textfilename is a plain text file containing the prose to be analysed
 
 Finds over-long sentences.
 Finds commonly used words.
+Finds commonly used n-grams.
 Writes output to a html file.
 
 TODO:
