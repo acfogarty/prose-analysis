@@ -1,3 +1,15 @@
+Prose analysis tool. Works like many web-based tools but for unlimited number of words.
+
+Finds over-long sentences.
+Finds over-used words.
+Finds over-used phrases.
+Analyses variability in sentence length.
+Writes output to a html file.
+
+Requires NumPy and nltk (Natural Language Toolkit, www.nltk.org)
+
+------------------------------------------------------
+
 Usage:
 
 python prose-analysis.py textfilename
@@ -6,14 +18,8 @@ textfilename is a plain text file containing the prose to be analysed
 
 ------------------------------------------------------
 
-Finds over-long sentences.
-Finds commonly used words.
-Finds commonly used n-grams.
-Writes output to a html file.
-
 TODO:
 - compare word frequencies to the frequencies in a corpus of texts
 - repeated sentence starts
 - adverbs
-- average sentence length, variability in sentence length
 - US/UK spelling consistency
