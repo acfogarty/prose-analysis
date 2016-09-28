@@ -10,13 +10,13 @@ import numpy as np
 
 # global variables
 stopwords = stopwords.words('english')
-punctuation = ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m",'``','"','--',"''"]
+punctuation = ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m",'``','"','--',"''",'(',')']
 stopwords += punctuation
 
 def main():
 
   #parameters controlling analysis
-  longSentenceCut = 45 #sentences are identified as 'too long' if nwords > longSentenceCut
+  longSentenceCut = 50 #sentences are identified as 'too long' if nwords > longSentenceCut
   wordFreqCutFraction = 0.004 #all words, 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
   ngramMax = 7 #find most common n-grams, from 2-grams to ngramMax-grams
 
@@ -33,13 +33,15 @@ def main():
 
   #process file contents
   processed = ''.join(i for i in raw if ord(i)<128) #clean non-ascii characters
-  processedLower = raw.lower()
-  wordTokens = nltk.word_tokenize(processedLower)
+  processedLower = processed.lower()
+  wordTokens = nltk.word_tokenize(processedLower) #break text into words
+  sentenceTokens = nltk.sent_tokenize(processed) #break text into sentences
+
   wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
   wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
 
   #find overlong sentences, get mean and stdev of sentence length
-  sentenceLengthHtml = analyseSentenceLength(processed, longSentenceCut)
+  sentenceLengthHtml = analyseSentenceLength(sentenceTokens, longSentenceCut)
   of.write(sentenceLengthHtml)
 
   #find most frequent words (not including stopwords)
@@ -49,6 +51,10 @@ def main():
   #find most frequent n-grams
   mostFrequentNgramsHtml = findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction)
   of.write(mostFrequentNgramsHtml)
+
+  #find adverbs
+  adverbHtml = findAdverbs(sentenceTokens)
+  of.write(adverbHtml)
 
   #finish html file
   writeHtmlFooter(of)
@@ -78,21 +84,17 @@ def writeHtmlFooter(of):
   of.write('</body>\n')
   of.write('</html>\n')
 
-def analyseSentenceLength(textString, longSentenceCut):
+def analyseSentenceLength(sentenceTokens, longSentenceCut):
   '''identify sentences that contain more than longSentenceCut words and print them with a color code that depends on sentence length; get mean and standard deviation of sentence length'''
   
   #color wordcount lightorange, orange or red depending on how far over longSentenceCut the sentence length is
   colorMap = {(longSentenceCut,int(longSentenceCut*1.2)): '#FFBF00', (int(longSentenceCut*1.2),int(longSentenceCut*1.4)): '#FF8000', (int(longSentenceCut*1.4),100000): '#FF0000'} #TODO find nicer solution
   
-  #break text into sentences
-  sentTokens = nltk.sent_tokenize(textString)
-  print 'Found ',len(sentTokens),' sentences'
-
   sentenceLengthHtml = '<h2>Long sentences (> '+str(longSentenceCut)+' words)</h2>\n'
   nLongSentences = 0
   sentenceLengths = []
   #break sentences into words
-  for sentence in sentTokens:
+  for sentence in sentenceTokens:
     wordTokens = nltk.word_tokenize(sentence)
     nWords = len(wordTokens)
     sentenceLengths.append(nWords)
@@ -125,8 +127,11 @@ def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExclu
   print 'Found ',nTotalWords,' words'
   wordFreqCut = int(nTotalWords*wordFreqCutFraction)
   print 'Printing all words that occur at least ',wordFreqCut,' times'
-  mostFrequentWordsHtml += '<p>Printing all words that occur at least ' + str(wordFreqCut) + ' times</p>'
-  if stopwordsExcluded: mostFrequentWordsHtml += "<p>Stopwords (such as 'the', 'a', 'in', 'of' etc.) are not included</p>\n"
+  mostFrequentWordsHtml += '<p>Printing all words that occur at least ' + str(wordFreqCut) + ' times.'
+  if stopwordsExcluded: 
+    mostFrequentWordsHtml += " Stopwords (such as 'the', 'a', 'in', 'of' etc.) are not included.</p>\n"
+  else:
+    mostFrequentWordsHtml += '</p>\n'
 
   #build frequency dictionary
   text = nltk.Text(wordTokensNoStopwords)
@@ -179,6 +184,45 @@ def findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction):
       quit()
 
   return mostFrequentNgramsHtml
+
+def findAdverbs(sentenceTokens):
+  '''print adverb-containing sentences with the adverbs highlighted in red'''
+
+  adverbHtml = '<h2>Adverbs</h2>\n'
+  sentenceHtml = ''
+
+  nAdverbs = 0.0
+  nWords = 0.0 #this will count each punctuation mark as a word, so isn't completely accurate
+
+  for sentence in sentenceTokens:
+
+    foundAdverb = False #only print sentences in which at least one adverb was found
+
+    try:
+      taggedTokens = nltk.pos_tag(nltk.word_tokenize(sentence))
+    except LookupError:
+      adverbHtml += '<p>Cannot find adverbs because taggers/maxent_treebank_pos_tagger is not installed. Please use the NLTK Downloader to obtain the resource:  >>> nltk.download()</p>\n'
+      return adverbHtml
+
+    nWords += float(len(taggedTokens))
+
+    #rebuild the sentence containing the highlighted adverb
+    html = '<p>'
+    for tagtuple in taggedTokens:
+      if tagtuple[1] == 'RB': #adverb
+        html += '<span style="color: red">' + tagtuple[0] + '</span> ' 
+        foundAdverb = True
+        nAdverbs += 1.0
+      else:
+        html += tagtuple[0] + ' '
+    if foundAdverb:
+      html += '</p>\n'
+      sentenceHtml += html
+
+  adverbHtml += '<p>Your text is %4.2f%% adverbs.</p>\n' % (nAdverbs/nWords*100.0) 
+  adverbHtml += sentenceHtml    
+    
+  return adverbHtml
 
 if __name__ == '__main__':
   main() 
