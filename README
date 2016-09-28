@@ -4,6 +4,7 @@ Finds over-long sentences.
 Finds over-used words.
 Finds over-used phrases.
 Analyses variability in sentence length.
+Highlights adverbs.
 Writes output to a html file.
 
 Requires NumPy and nltk (Natural Language Toolkit, www.nltk.org)
@@ -21,5 +22,5 @@ textfilename is a plain text file containing the prose to be analysed
 TODO:
 - compare word frequencies to the frequencies in a corpus of texts
 - repeated sentence starts
-- adverbs
 - US/UK spelling consistency
+- fix spacing in adverb sentence printing
