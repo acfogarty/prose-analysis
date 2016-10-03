@@ -12,6 +12,7 @@ import numpy as np
 stopwords = stopwords.words('english')
 punctuation = ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m",'``','"','--',"''",'(',')']
 stopwords += punctuation
+adverbFlag = False #if True, find and highlight adverbs
 
 def main():
 
@@ -86,7 +87,7 @@ def writeHtmlFooter(of):
 
 def analyseSentenceLength(sentenceTokens, longSentenceCut):
   '''identify sentences that contain more than longSentenceCut words and print them with a color code that depends on sentence length; get mean and standard deviation of sentence length'''
-  
+ 
   #color wordcount lightorange, orange or red depending on how far over longSentenceCut the sentence length is
   colorMap = {(longSentenceCut,int(longSentenceCut*1.2)): '#FFBF00', (int(longSentenceCut*1.2),int(longSentenceCut*1.4)): '#FF8000', (int(longSentenceCut*1.4),100000): '#FF0000'} #TODO find nicer solution
   
@@ -189,39 +190,46 @@ def findAdverbs(sentenceTokens):
   '''print adverb-containing sentences with the adverbs highlighted in red'''
 
   adverbHtml = '<h2>Adverbs</h2>\n'
-  sentenceHtml = ''
 
-  nAdverbs = 0.0
-  nWords = 0.0 #this will count each punctuation mark as a word, so isn't completely accurate
+  if adverbFlag: #global variable
 
-  for sentence in sentenceTokens:
+    sentenceHtml = ''
 
-    foundAdverb = False #only print sentences in which at least one adverb was found
+    nAdverbs = 0.0
+    nWords = 0.0 #this will count each punctuation mark as a word, so isn't completely accurate
 
-    try:
-      taggedTokens = nltk.pos_tag(nltk.word_tokenize(sentence))
-    except LookupError:
-      adverbHtml += '<p>Cannot find adverbs because taggers/maxent_treebank_pos_tagger is not installed. Please use the NLTK Downloader to obtain the resource:  >>> nltk.download()</p>\n'
-      return adverbHtml
+    for sentence in sentenceTokens:
 
-    nWords += float(len(taggedTokens))
+      foundAdverb = False #only print sentences in which at least one adverb was found
 
-    #rebuild the sentence containing the highlighted adverb
-    html = '<p>'
-    for tagtuple in taggedTokens:
-      if tagtuple[1] == 'RB': #adverb
-        html += '<span style="color: red">' + tagtuple[0] + '</span> ' 
-        foundAdverb = True
-        nAdverbs += 1.0
-      else:
-        html += tagtuple[0] + ' '
-    if foundAdverb:
-      html += '</p>\n'
-      sentenceHtml += html
+      try:
+        taggedTokens = nltk.pos_tag(nltk.word_tokenize(sentence))
+      except LookupError:
+        adverbHtml += '<p>Cannot find adverbs because taggers/maxent_treebank_pos_tagger is not installed. Please use the NLTK Downloader to obtain the resource:  >>> nltk.download()</p>\n'
+        return adverbHtml
 
-  adverbHtml += '<p>Your text is %4.2f%% adverbs.</p>\n' % (nAdverbs/nWords*100.0) 
-  adverbHtml += sentenceHtml    
-    
+      nWords += float(len(taggedTokens))
+
+      #rebuild the sentence containing the highlighted adverb
+      html = '<p>'
+      for tagtuple in taggedTokens:
+        if tagtuple[1] == 'RB': #adverb
+          html += '<span style="color: red">' + tagtuple[0] + '</span> ' 
+          foundAdverb = True
+          nAdverbs += 1.0
+        else:
+          html += tagtuple[0] + ' '
+      if foundAdverb:
+        html += '</p>\n'
+        sentenceHtml += html
+
+    adverbHtml += '<p>Your text is %4.2f%% adverbs.</p>\n' % (nAdverbs/nWords*100.0) 
+    adverbHtml += sentenceHtml    
+      
+  else: #if not adverbFlag
+
+    adverbHtml += '<p>Adverbs not found because adverbFlag is set to False</p>'
+
   return adverbHtml
 
 if __name__ == '__main__':
