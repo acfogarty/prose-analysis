@@ -12,14 +12,14 @@ import numpy as np
 stopwords = stopwords.words('english')
 punctuation = ['.',',',';','?','!','-',':','',"n't","'d","'re","'s","'m",'``','"','--',"''",'(',')']
 stopwords += punctuation
-adverbFlag = False #if True, find and highlight adverbs
 
 def main():
 
   #parameters controlling analysis
-  longSentenceCut = 50 #sentences are identified as 'too long' if nwords > longSentenceCut
-  wordFreqCutFraction = 0.004 #all words, 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
-  ngramMax = 7 #find most common n-grams, from 2-grams to ngramMax-grams
+  longSentenceCut = 55 #sentences are identified as 'too long' if nwords > longSentenceCut
+  wordFreqCutFraction = 0.003 #all words, 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
+  ngramMax = 6 #find most common n-grams, from 2-grams to ngramMax-grams
+  adverbFlag = False #if True, find and highlight adverbs
 
   #start html file
   of = open('prose-analysis-output.html','w')
@@ -54,7 +54,7 @@ def main():
   of.write(mostFrequentNgramsHtml)
 
   #find adverbs
-  adverbHtml = findAdverbs(sentenceTokens)
+  adverbHtml = findAdverbs(sentenceTokens,adverbFlag)
   of.write(adverbHtml)
 
   #finish html file
@@ -186,7 +186,7 @@ def findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction):
 
   return mostFrequentNgramsHtml
 
-def findAdverbs(sentenceTokens):
+def findAdverbs(sentenceTokens,adverbFlag):
   '''print adverb-containing sentences with the adverbs highlighted in red'''
 
   adverbHtml = '<h2>Adverbs</h2>\n'
