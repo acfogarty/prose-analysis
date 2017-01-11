@@ -4,6 +4,7 @@ import re
 sys.path.insert(1,'/Library/Python/2.7/site-packages')
 import nltk
 from nltk.corpus import stopwords
+from nltk.corpus import brown
 import numpy as np
 
 # usage: python prose-analysis.py file-to-be-analysed
@@ -16,10 +17,11 @@ stopwords += punctuation
 def main():
 
   #parameters controlling analysis
-  longSentenceCut = 55 #sentences are identified as 'too long' if nwords > longSentenceCut
+  longSentenceCut = 35 #sentences are identified as 'too long' if nwords > longSentenceCut
   wordFreqCutFraction = 0.003 #all words, 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
   ngramMax = 6 #find most common n-grams, from 2-grams to ngramMax-grams
-  adverbFlag = False #if True, find and highlight adverbs
+  adverbFlag = True #if True, find and highlight adverbs
+  corpusCategory = 'fiction' #corpus category to use when comparing word frequency in this text to word frequency in a corpus; possibilities are: 'adventure', 'belles_lettres', 'editorial', 'fiction', 'government', 'hobbies', 'humor', 'learned', 'lore', 'mystery', 'news', 'religion', 'reviews', 'romance', 'science_fiction'
 
   #start html file
   of = open('prose-analysis-output.html','w')
@@ -48,6 +50,10 @@ def main():
   #find most frequent words (not including stopwords)
   mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
   of.write(mostFrequentWordsHtml)
+
+  #compare word frequency to corpus word frequency
+  freqVersusCorpusHtml = compareFrequentWordsToCorpus(wordTokens, corpusCategory)
+  of.write(freqVersusCorpusHtml)
 
   #find most frequent n-grams
   mostFrequentNgramsHtml = findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction)
@@ -125,7 +131,7 @@ def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExclu
 
   mostFrequentWordsHtml = '<h2>Most frequently used words</h2>\n'
   nTotalWords = len(wordTokensNoStopwords)
-  print 'Found ',nTotalWords,' words'
+  print 'Found ',nTotalWords,' words, excluding stopwords'
   wordFreqCut = int(nTotalWords*wordFreqCutFraction)
   print 'Printing all words that occur at least ',wordFreqCut,' times'
   mostFrequentWordsHtml += '<p>Printing all words that occur at least ' + str(wordFreqCut) + ' times.'
@@ -231,6 +237,45 @@ def findAdverbs(sentenceTokens,adverbFlag):
     adverbHtml += '<p>Adverbs not found because adverbFlag is set to False</p>'
 
   return adverbHtml
+
+def compareFrequentWordsToCorpus(wordTokens, corpusCategory):
+  '''compare word frequency in the text to word frequency in a corpus'''
+
+  freqVersusCorpusHtml = '<h2>Word frequency compared to a corpus</h2>'
+  freqVersusCorpusHtml += '<p>Category of corpus used: '+corpusCategory
+  freqVersusCorpusHtml += '<p>Number shown = frequency with which the word appears in the input text, relative to the frequency with which it appears in the reference corpus (large set of example texts)</p>'
+  freqVersusCorpusHtml += '<p>If the number is greater than 1, the word appears much more often in the text than in the corpus</p>'
+  freqVersusCorpusHtml += '<p>If the number is less than 1, the word appears much less often in the text than in the corpus</p>'
+
+  #build frequency dictionary for corpus text
+  corpusText = brown.words(categories=corpusCategory)
+  fdistCorpus = nltk.FreqDist(w.lower() for w in corpusText)
+  totalCorpus = float(fdistCorpus.N()) #total number of words
+
+  #build frequency dictionary for text (note: this is partially redundant with the dictionary in findFrequentWords)
+  text = nltk.Text(wordTokens)
+  fdistText = nltk.FreqDist(text)
+  totalText = float(fdistText.N()) #total number of words
+
+  htmlInCorpus = ''
+  htmlNotInCorpus = ''
+  relFreqDict = {}
+  for word in fdistText.keys():
+    if word not in fdistCorpus.keys():
+      htmlNotInCorpus += '<p>' + word + ': not in corpus</p>'
+    else:
+      freqratio = fdistText[word]/totalText/fdistCorpus[word]*totalCorpus #(frequency in text)/(frequency in corpus)
+      relFreqDict[word] = freqratio
+
+  #sort words by relative frequency
+  for word in sorted(relFreqDict, key=relFreqDict.get):
+    htmlInCorpus += '<p>' + word + ': '+str(relFreqDict[word])+'</p>'
+
+  freqVersusCorpusHtml += htmlInCorpus
+  freqVersusCorpusHtml += htmlNotInCorpus
+
+  return freqVersusCorpusHtml
+
 
 if __name__ == '__main__':
   main() 

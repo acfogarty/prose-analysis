@@ -20,7 +20,7 @@ textfilename is a plain text file containing the prose to be analysed
 ------------------------------------------------------
 
 TODO:
-- compare word frequencies to the frequencies in a corpus of texts
+- nicer printing of frequencies compared to a corpus
 - repeated sentence starts
 - US/UK spelling consistency
 - fix spacing in adverb sentence printing
