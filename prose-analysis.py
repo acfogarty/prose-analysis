@@ -61,8 +61,12 @@ def main():
   of.write(mostFrequentNgramsHtml)
 
   # find adverbs
-  adverbHtml = findAdverbs(sentenceTokens,adverbFlag)
+  adverbHtml = findAdverbs(sentenceTokens, adverbFlag)
   of.write(adverbHtml)
+
+  # find repeated sentence starts
+  sentStartHtml = findRepeatedSentenceStarts(sentenceTokens, ngramMax)
+  of.write(sentStartHtml)
 
   # finish html file
   writeHtmlFooter(of)
@@ -283,6 +287,47 @@ def compareFrequentWordsToCorpus(wordTokens, corpusCategory):
   freqVersusCorpusHtml += htmlNotInCorpus
 
   return freqVersusCorpusHtml
+
+
+def findRepeatedSentenceStarts(sentenceTokens, ngramMax):
+  '''find n-grams which are used more than once to start sentences, all n-grams up to ngramMax'''
+
+  sentStartHtml = '<h2>Words and phrases frequently used to start sentences</h2>'
+
+  ngrams = []
+  for i in range(ngramMax):
+    ngrams.append([])
+ 
+  # collect words from start of every sentence
+  for sentence in sentenceTokens:
+
+    wordTokens = nltk.word_tokenize(sentence)
+    wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
+    maxPossWords = min(ngramMax, len(wordTokensNoPunctuation))
+
+    for i in range(maxPossWords):
+      ngrams[i].append(' '.join(wordTokensNoPunctuation[:i+1]))
+
+  # count frequencies of n-grams
+  for i in range(1,ngramMax+1):
+
+    sentStartHtml += '<h3>' + str(i) + '-grams</h3>\n'
+    countsToNgrams = {}
+
+    for ngram in set(ngrams[i-1]):
+      count = ngrams[i-1].count(ngram)
+      if count > 1:
+        if count in countsToNgrams.keys():
+          countsToNgrams[count].append(ngram)
+        else:
+          countsToNgrams[count] = [ngram]
+
+    # print from most to least frequent
+    for count in reversed(sorted(countsToNgrams.keys())):
+      for ngram in countsToNgrams[count]:
+        sentStartHtml += '<p>' + ngram + ': ' + str(count) + '</p>\n'
+
+  return sentStartHtml
 
 
 if __name__ == '__main__':
