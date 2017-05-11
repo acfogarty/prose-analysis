@@ -329,6 +329,30 @@ def findRepeatedSentenceStarts(sentenceTokens, ngramMax):
 
   return sentStartHtml
 
+def levenshtein_distance(string1, string2):
+
+  len_string1 = len(string1)
+  len_string2 = len(string2)
+
+  if len_string2 > len_string1:
+    return levenshtein_distance(string2, string1)
+
+  array = np.zeros((len_string1 + 1, len_string2 + 1))
+  array[:, 0] = range(len_string1 + 1)
+  array[0, :] = range(len_string2 + 1)
+
+  for i1 in range(1, len_string1 + 1):
+    for i2 in range(1, len_string2 + 1):
+      if string1[i1-1] == string2[i2-1]:
+        substitute = array[i1-1, i2-1]
+      else:
+        substitute = array[i1-1, i2-1] + 1
+      delete = array[i1 - 1, i2] + 1
+      insert = array[i1, i2 - 1] + 1
+      array[i1, i2] = min(delete, insert, substitute)
+
+  return array[len_string1, len_string2]
+
 
 if __name__ == '__main__':
   main() 
