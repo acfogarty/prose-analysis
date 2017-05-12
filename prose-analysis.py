@@ -23,6 +23,8 @@ def main():
   ngramMax = 6  # find most common n-grams, from 2-grams to ngramMax-grams
   adverbFlag = True  # if True, find and highlight adverbs
   corpusCategory = 'fiction'  # corpus category to use when comparing word frequency in this text to word frequency in a corpus; possibilities are: 'adventure', 'belles_lettres', 'editorial', 'fiction', 'government', 'hobbies', 'humor', 'learned', 'lore', 'mystery', 'news', 'religion', 'reviews', 'romance', 'science_fiction'
+  levenshteinCutoff = 0.5
+  contextWindow = 7
 
   # start html file
   of = open('prose-analysis-output.html','w')
@@ -67,6 +69,10 @@ def main():
   # find repeated sentence starts
   sentStartHtml = findRepeatedSentenceStarts(sentenceTokens, ngramMax)
   of.write(sentStartHtml)
+
+  # find similar words which are close together
+  levenshteinHtml = findCloseLevenshteinWords(wordTokensNoPunctuation, contextWindow, levenshteinCutoff)
+  of.write(levenshteinHtml)
 
   # finish html file
   writeHtmlFooter(of)
@@ -329,13 +335,13 @@ def findRepeatedSentenceStarts(sentenceTokens, ngramMax):
 
   return sentStartHtml
 
-def levenshtein_distance(string1, string2):
+def levenshteinDistance(string1, string2):
 
   len_string1 = len(string1)
   len_string2 = len(string2)
 
   if len_string2 > len_string1:
-    return levenshtein_distance(string2, string1)
+    return levenshteinDistance(string2, string1)
 
   array = np.zeros((len_string1 + 1, len_string2 + 1))
   array[:, 0] = range(len_string1 + 1)
@@ -352,6 +358,32 @@ def levenshtein_distance(string1, string2):
       array[i1, i2] = min(delete, insert, substitute)
 
   return array[len_string1, len_string2]
+
+
+def findCloseLevenshteinWords(wordTokens, contextWindow, levenshteinCutoff):
+
+  levenshteinHtml = '<h2>Similar words which are close together on the page</h2>'
+
+  for i, word1 in enumerate(wordTokens):
+    if i > len(wordTokens) - contextWindow:
+      break
+    for j in xrange(i+1, i+contextWindow):
+      word2 = wordTokens[j]
+      if levenshteinDistance(word1, word2)/np.mean((len(word1),len(word2))) < levenshteinCutoff:
+        if (word1 not in stopwords) and (word2 not in stopwords):
+          # rebuild the sentence containing the highlighted adverb
+          levenshteinHtml += '<p>'
+          for k in xrange(i-contextWindow, j+contextWindow):
+            if (k==i) or (k==j):
+              levenshteinHtml += '<span style="color: red">' + wordTokens[k] + '</span> ' 
+            else:
+              try:  # deal with fact we may be at end of file
+                levenshteinHtml += wordTokens[k] + ' '
+              except IndexError:
+                break
+          levenshteinHtml += '</p>\n'
+          
+  return levenshteinHtml
 
 
 if __name__ == '__main__':
