@@ -7,6 +7,7 @@ Finds repeated sentence starts.
 Analyses variability in sentence length.
 Highlights adverbs.
 Highlights words which are similar in spelling (Levenshtein distance) and close together on page.
+Highlights words which are similar in pronunciation (soundex encoding) and close together on page.
 Writes output to a html file.
 
 Requires NumPy and nltk (Natural Language Toolkit, www.nltk.org)
@@ -27,3 +28,4 @@ TODO:
 - fix spacing in adverb sentence printing
 - make model mapping spelling to pronunciation, detect words which are similar in pronunciation and close together on page
 - suggest alternative words (GloVe)
+- better cleaning of special charactesr (inc. markdown or html tags)
