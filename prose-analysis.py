@@ -71,8 +71,12 @@ def main():
   of.write(sentStartHtml)
 
   # find similar words which are close together
-  levenshteinHtml = findCloseLevenshteinWords(wordTokensNoPunctuation, contextWindow, levenshteinCutoff)
+  levenshteinHtml = findCloseWords(wordTokensNoPunctuation, contextWindow, distanceType='levenshtein', levenshteinCutoff=levenshteinCutoff)
   of.write(levenshteinHtml)
+
+  # find similar-sounding words which are close together
+  soundexHtml = findCloseWords(wordTokensNoPunctuation, contextWindow, distanceType='soundex')
+  of.write(soundexHtml)
 
   # finish html file
   writeHtmlFooter(of)
@@ -335,6 +339,7 @@ def findRepeatedSentenceStarts(sentenceTokens, ngramMax):
 
   return sentStartHtml
 
+
 def levenshteinDistance(string1, string2):
 
   len_string1 = len(string1)
@@ -360,30 +365,61 @@ def levenshteinDistance(string1, string2):
   return array[len_string1, len_string2]
 
 
-def findCloseLevenshteinWords(wordTokens, contextWindow, levenshteinCutoff):
+def findCloseWords(wordTokens, contextWindow, distanceType='levenshtein', levenshteinCutoff=1):
+  '''for a given deinition of similarity, find words which are similar and which are
+  close together on the page
+  'Close together' is defined as 'within a sliding window of size contextWindow'
+  Criteria for deciding two words are similar are:
+  - distanceType == levenshtein: levenshtein distance between two tokens is less than levenshteinCutoff
+  - distanceType == soundex: two tokens have same soundex encoding
 
-  levenshteinHtml = '<h2>Similar words which are close together on the page</h2>'
+  input parameters:
+  wordTokens: list of strings, should include stopwords so that sentences showing word context
+              can be properly reconstructed
+  contextWindow: integer, try to match word[i] to words in range word[i+1] to word[i+contextWindow]
+  distanceType: string, 'levenshtein' or 'soundex'
+  levenshteinCutoff: float, only needed if distanceType == 'levenshtein'
+  '''
+
+  if distanceType == 'levenshtein':
+    closeHtml = '<h2>Similar words which are close together on the page</h2>'
+  elif distanceType == 'soundex':
+    closeHtml = '<h2>Similar-sounding words which are close together on the page</h2>'
+  else:
+    print('distanceType', distanceType, 'not recognised in function findCloseWords')
+    quit()
+
+  if distanceType == 'soundex':
+    # convert each word to soundex equivalent encoding
+    wordTokens = soundex(wordTokens)
 
   for i, word1 in enumerate(wordTokens):
     if i > len(wordTokens) - contextWindow:
       break
     for j in xrange(i+1, i+contextWindow):
       word2 = wordTokens[j]
-      if levenshteinDistance(word1, word2)/np.mean((len(word1),len(word2))) < levenshteinCutoff:
+
+      # use difference closeness checks for different distance types
+      if distanceType == 'levenshtein':
+        isClose = (levenshteinDistance(word1, word2)/np.mean((len(word1),len(word2))) < levenshteinCutoff)
+      elif distanceType == 'soundex':
+        isClose = (word1 == word2)
+
+      if isClose:
         if (word1 not in stopwords) and (word2 not in stopwords):
-          # rebuild the sentence containing the highlighted adverb
-          levenshteinHtml += '<p>'
+          # rebuild the sentence containing the highlighted word
+          closeHtml += '<p>'
           for k in xrange(i-contextWindow, j+contextWindow):
             if (k==i) or (k==j):
-              levenshteinHtml += '<span style="color: red">' + wordTokens[k] + '</span> ' 
+              closeHtml += '<span style="color: red">' + wordTokens[k] + '</span> ' 
             else:
               try:  # deal with fact we may be at end of file
-                levenshteinHtml += wordTokens[k] + ' '
+                closeHtml += wordTokens[k] + ' '
               except IndexError:
                 break
-          levenshteinHtml += '</p>\n'
+          closeHtml += '</p>\n'
           
-  return levenshteinHtml
+  return closeHtml
 
 
 if __name__ == '__main__':
