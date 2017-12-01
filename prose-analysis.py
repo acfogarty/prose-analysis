@@ -340,6 +340,65 @@ def findRepeatedSentenceStarts(sentenceTokens, ngramMax):
   return sentStartHtml
 
 
+def soundex(word):
+    '''
+    Convert word to soundex representation
+    Input: string
+    Output: string
+    (Not the SQL implementation)'''
+
+    soundex_map = {'b': '1',
+                   'f': '1',
+                   'p': '1',
+                   'v': '1',
+                   'c': '2',
+                   'g': '2',
+                   'j': '2',
+                   'k': '2',
+                   'q': '2',
+                   's': '2',
+                   'x': '2',
+                   'z': '2',
+                   'd': '3',
+                   't': '3',
+                   'l': '4',
+                   'm': '5',
+                   'n': '5',
+                   'r': '6'}
+
+    # Remove all occurrences of 'h' and 'w' except first letter
+    first_letter = word[0]
+    tail = word[1:].replace('h', '').replace('w', '')
+    word = first_letter + tail
+
+    # Replace all consonants (include the first letter) with digits
+    # Replace all adjacent same digits with one digit
+    soundex_string = ''
+    for c in word:
+        try:
+            new_char = soundex_map[c]
+            if new_char == soundex_string[:-1]:  # same digit twice in a row
+                new_char = ''
+        except KeyError:  # vowels
+            new_char = c.upper()
+        soundex_string += new_char
+
+    # Remove all occurrences of a, e, i, o, u, y except first letter
+    first_symbol = soundex_string[0]
+    tail = ''.join(re.split(r'[AEIOUY]', soundex_string[1:]))
+    # If first symbol is a digit replace it with letter saved earlier
+    if first_symbol.isdigit():
+        first_symbol = first_letter.upper()
+    soundex_string = first_symbol + tail
+
+    # 4 characters exactly
+    while len(soundex_string) < 4:
+        soundex_string += '0'                                 
+    soundex_string = soundex_string[:4]                       
+                                                              
+    return soundex_string                              
+
+
 def levenshteinDistance(string1, string2):
 
   len_string1 = len(string1)
@@ -389,10 +448,6 @@ def findCloseWords(wordTokens, contextWindow, distanceType='levenshtein', levens
     print('distanceType', distanceType, 'not recognised in function findCloseWords')
     quit()
 
-  if distanceType == 'soundex':
-    # convert each word to soundex equivalent encoding
-    wordTokens = soundex(wordTokens)
-
   for i, word1 in enumerate(wordTokens):
     if i > len(wordTokens) - contextWindow:
       break
@@ -403,7 +458,7 @@ def findCloseWords(wordTokens, contextWindow, distanceType='levenshtein', levens
       if distanceType == 'levenshtein':
         isClose = (levenshteinDistance(word1, word2)/np.mean((len(word1),len(word2))) < levenshteinCutoff)
       elif distanceType == 'soundex':
-        isClose = (word1 == word2)
+        isClose = (soundex(word1) == soundex(word2))
 
       if isClose:
         if (word1 not in stopwords) and (word2 not in stopwords):
