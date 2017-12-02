@@ -24,7 +24,7 @@ def main():
   adverbFlag = True  # if True, find and highlight adverbs
   corpusCategory = 'fiction'  # corpus category to use when comparing word frequency in this text to word frequency in a corpus; possibilities are: 'adventure', 'belles_lettres', 'editorial', 'fiction', 'government', 'hobbies', 'humor', 'learned', 'lore', 'mystery', 'news', 'religion', 'reviews', 'romance', 'science_fiction'
   levenshteinCutoff = 0.5
-  contextWindow = 7
+  contextWindow = 7  # when checking if words close to each other in the text have similar sound/spelling, look at pairs of words within this window
 
   # start html file
   of = open('prose-analysis-output.html','w')
@@ -39,6 +39,8 @@ def main():
 
   # process file contents
   processed = ''.join(i for i in raw if ord(i)<128)  # clean non-ascii characters
+  regex = re.compile('<.*?>')
+  processed = re.sub(regex, '', processed)  # clean html tags
   processedLower = processed.lower()
   wordTokens = nltk.word_tokenize(processedLower)  # break text into words
   sentenceTokens = nltk.sent_tokenize(processed)  # break text into sentences
