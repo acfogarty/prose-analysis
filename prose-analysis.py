@@ -20,12 +20,13 @@ def main():
 
   # parameters controlling analysis
   longSentenceCut = 35  # sentences are identified as 'too long' if nwords > longSentenceCut
+  longParagraphCut = 100  # paragraphs are identified as 'too long' if nwords > longParagraphCut
   wordFreqCutFraction = 0.003  # all words, 2-grams and 3-grams which appear more than wordFreqCutFraction*nTotalWords times in the text will be printed
   ngramMax = 6  # find most common n-grams, from 2-grams to ngramMax-grams
   adverbFlag = True  # if True, find and highlight adverbs
   corpusCategory = 'fiction'  # corpus category to use when comparing word frequency in this text to word frequency in a corpus; possibilities are: 'adventure', 'belles_lettres', 'editorial', 'fiction', 'government', 'hobbies', 'humor', 'learned', 'lore', 'mystery', 'news', 'religion', 'reviews', 'romance', 'science_fiction'
   levenshteinCutoff = 0.5
-  contextWindow = 7  # when checking if words close to each other in the text have similar sound/spelling, look at pairs of words within this window
+  contextWindow = 10  # when checking if words close to each other in the text have similar sound/spelling, look at pairs of words within this window
 
   # start html file
   of = open('prose-analysis-output.html','w')
@@ -45,13 +46,18 @@ def main():
   processedLower = processed.lower()
   wordTokens = nltk.word_tokenize(processedLower)  # break text into words
   sentenceTokens = nltk.sent_tokenize(processed)  # break text into sentences
+  paragraphTokens = processed.split('\n\n')  # break text into paragraphs
 
   wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
   wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
 
   # find overlong sentences, get mean and stdev of sentence length, plot sentence length
-  sentenceLengthHtml = analyseSentenceLength(sentenceTokens, longSentenceCut)
+  sentenceLengthHtml = analyseSentenceParagraphLength(sentenceTokens, longSentenceCut, sequenceType='sentence')
   of.write(sentenceLengthHtml)
+
+  # find overlong paragraphs, get mean and stdev of paragraph length, plot paragraph length
+  paragraphLengthHtml = analyseSentenceParagraphLength(paragraphTokens, longParagraphCut, sequenceType='paragraph')
+  of.write(paragraphLengthHtml)
 
   # find most frequent words (not including stopwords)
   mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
@@ -112,45 +118,50 @@ def writeHtmlFooter(of):
   of.write('</html>\n')
 
 
-def analyseSentenceLength(sentenceTokens, longSentenceCut):
-  '''identify sentences that contain more than longSentenceCut words and print them with a color code that depends on sentence length; get mean and standard deviation of sentence length'''
+def analyseSentenceParagraphLength(tokens, longCut, sequenceType):
+  '''identify sentences or paragraphs that contain more than longCut words and print them with a color code that depends on sentence/paragraph length; get mean and standard deviation of sentence/paragraph length, plot graphic
+     tokens: list of untokenised sentences or paragraphs
+     longCut: integer
+     sequenceType: 'sentence' or 'paragraph'
+     '''
  
-  # color wordcount lightorange, orange or red depending on how far over longSentenceCut the sentence length is
-  colorMap = {(longSentenceCut,int(longSentenceCut*1.2)): '#FFBF00', (int(longSentenceCut*1.2),int(longSentenceCut*1.4)): '#FF8000', (int(longSentenceCut*1.4),100000): '#FF0000'}  # TODO find nicer solution
+  # color wordcount lightorange, orange or red depending on how far over longCut the sentence/paragraph length is
+  colorMap = {(longCut,int(longCut*1.2)): '#FFBF00', (int(longCut*1.2),int(longCut*1.4)): '#FF8000', (int(longCut*1.4),100000): '#FF0000'}  # TODO find nicer solution
   
-  sentenceLengthHtml = '<h2>Long sentences (> '+str(longSentenceCut)+' words)</h2>\n'
-  nLongSentences = 0
-  sentenceLengths = []
-  # break sentences into words
-  for sentence in sentenceTokens:
-    wordTokens = nltk.word_tokenize(sentence)
+  sequenceLengthHtml = '<h2>Long {} (> {} words)</h2>\n'.format(sequenceType, longCut)
+  nLongSequences = 0
+  sequenceLengths = []
+  # break sentences/paragraphs into words
+  for wordSequence in tokens:
+    wordTokens = nltk.word_tokenize(wordSequence)
     nWords = len(wordTokens)
-    sentenceLengths.append(nWords)
-    if nWords > longSentenceCut:
+    sequenceLengths.append(nWords)
+    if nWords > longCut:
       # get printing color
       for rangeTuple in colorMap.keys():
         if nWords > rangeTuple[0] and nWords <= rangeTuple[1]:
           color = colorMap[rangeTuple]
       # print to html
-      html = '<p>' + sentence + ' - <span style="color:' + color + ';">' + str(nWords) + ' words</span></p>\n'
-      sentenceLengthHtml += html
-      nLongSentences += 1
+      html = '<p>' + wordSequence + ' - <span style="color:' + color + ';">' + str(nWords) + ' words</span></p>\n'
+      sequenceLengthHtml += html
+      nLongSequences += 1
 
-  print 'Found ',nLongSentences,' long sentences'
+  print 'Found {} long {}s'.format(nLongSequences, sequenceType)
 
-  sentenceLengths = np.asarray(sentenceLengths)
-  sentenceLengthHtml += '<h2>Sentence length variability</h2>\n'
-  sentenceLengthHtml += '<p>Longest sentence: ' + str(sentenceLengths.max()) + ' words</p>\n'
-  sentenceLengthHtml += '<p>Shortest sentence: ' + str(sentenceLengths.min()) + ' words</p>\n'
-  sentenceLengthHtml += '<p>Average sentence length: ' + '%4.2f' % sentenceLengths.mean() + ' words</p>\n'
-  sentenceLengthHtml += '<p>Standard deviation of sentence length: ' + '%4.2f' % sentenceLengths.std() + ' words</p>\n'
+  sequenceLengths = np.asarray(sequenceLengths)
+  sequenceLengthHtml += '<h2>{} length variability</h2>\n'.format(sequenceType.title())
+  sequenceLengthHtml += '<p>Longest {}: {} words</p>\n'.format(sequenceType, sequenceLengths.max())
+  sequenceLengthHtml += '<p>Shortest {}: {} words</p>\n'.format(sequenceType, sequenceLengths.min())
+  sequenceLengthHtml += '<p>Average {} length: {:4.2f} words</p>\n'.format(sequenceType, sequenceLengths.mean())
+  sequenceLengthHtml += '<p>Standard deviation of {} length: {:4.2f} words</p>\n'.format(sequenceType, sequenceLengths.std())
 
-  plt.plot(sentenceLengths)
-  plt.xlabel('sentence index')
-  plt.ylabel('words per sentence')
-  plt.savefig('words_per_sentence.png', bbox_inches='tight')
+  plt.clf()
+  plt.plot(sequenceLengths)
+  plt.xlabel(sequenceType + ' index')
+  plt.ylabel('words per ' + sequenceType)
+  plt.savefig('words_per_{}.png'.format(sequenceType), bbox_inches='tight')
 
-  return sentenceLengthHtml
+  return sequenceLengthHtml
 
 
 def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExcluded=True):
