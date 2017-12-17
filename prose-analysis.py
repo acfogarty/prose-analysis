@@ -63,9 +63,9 @@ def main():
   mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
   of.write(mostFrequentWordsHtml)
 
-  # compare word frequency to corpus word frequency
-  freqVersusCorpusHtml = compareFrequentWordsToCorpus(wordTokens, corpusCategory)
-  of.write(freqVersusCorpusHtml)
+  # # compare word frequency to corpus word frequency
+  # freqVersusCorpusHtml = compareFrequentWordsToCorpus(wordTokens, corpusCategory)
+  # of.write(freqVersusCorpusHtml)
 
   # find most frequent n-grams
   mostFrequentNgramsHtml = findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction)
