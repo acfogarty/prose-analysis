@@ -6,6 +6,7 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.corpus import brown
 import numpy as np
+import matplotlib.pyplot as plt
 
 # usage: python prose-analysis.py file-to-be-analysed
 
@@ -48,7 +49,7 @@ def main():
   wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
   wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
 
-  # find overlong sentences, get mean and stdev of sentence length
+  # find overlong sentences, get mean and stdev of sentence length, plot sentence length
   sentenceLengthHtml = analyseSentenceLength(sentenceTokens, longSentenceCut)
   of.write(sentenceLengthHtml)
 
@@ -143,6 +144,11 @@ def analyseSentenceLength(sentenceTokens, longSentenceCut):
   sentenceLengthHtml += '<p>Shortest sentence: ' + str(sentenceLengths.min()) + ' words</p>\n'
   sentenceLengthHtml += '<p>Average sentence length: ' + '%4.2f' % sentenceLengths.mean() + ' words</p>\n'
   sentenceLengthHtml += '<p>Standard deviation of sentence length: ' + '%4.2f' % sentenceLengths.std() + ' words</p>\n'
+
+  plt.plot(sentenceLengths)
+  plt.xlabel('sentence index')
+  plt.ylabel('words per sentence')
+  plt.savefig('words_per_sentence.png', bbox_inches='tight')
 
   return sentenceLengthHtml
 
