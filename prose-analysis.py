@@ -159,9 +159,13 @@ def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExclu
   mostFrequentWordsHtml = '<h2>Most frequently used words</h2>\n'
   nTotalWords = len(wordTokensNoStopwords)
   print 'Found ',nTotalWords,' words, excluding stopwords'
+
   wordFreqCut = int(nTotalWords*wordFreqCutFraction)
+  # if text is too short and wordFreqCut = 1, only print words occuring at least twice
+  wordFreqCut = max(wordFreqCut, 2)
   print 'Printing all words that occur at least ',wordFreqCut,' times'
   mostFrequentWordsHtml += '<p>Printing all words that occur at least ' + str(wordFreqCut) + ' times.'
+
   if stopwordsExcluded: 
     mostFrequentWordsHtml += " Stopwords (such as 'the', 'a', 'in', 'of' etc.) are not included.</p>\n"
   else:
@@ -172,7 +176,7 @@ def findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction, stopwordsExclu
   fdist = nltk.FreqDist(text)
 
   # get words which appear >= wordFreqCut times and print to html
-  nMostCommon = 1000
+  nMostCommon = min(1000, nTotalWords)
   reachedCut = False  # for checking if nMostCommon was big enough TODO is there a more elegant way to do this?
   for word,freq in fdist.most_common(nMostCommon): 
     if freq < wordFreqCut:
@@ -192,7 +196,9 @@ def findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction):
 
   mostFrequentNgramsHtml = '<h2>Most frequently used n-grams</h2>\n'
   nTotalWords = len(wordTokensNoPunctuation)
+
   wordFreqCut = int(nTotalWords*wordFreqCutFraction)
+  wordFreqCut = max(wordFreqCut, 2)
   freqCut = {2: wordFreqCut, 3: wordFreqCut}  # cut printing at different frequencies for different values of n 
   for n in xrange(4,ngramMax+1):
     freqCut[n] = 2
