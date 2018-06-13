@@ -35,6 +35,74 @@ def main():
   # get prose file contents
   filename = sys.argv[1]
   of.write('<h1>Analysis of the file '+filename+'</h1>\n')
+
+  tokenized = loadProcessFile(filename)
+
+  # find overlong sentences, get mean and stdev of sentence length, plot sentence length
+  sentenceLengthHtml = analyseSentenceParagraphLength(tokenized['sentenceTokens'], 
+                                                      longSentenceCut, 
+                                                      sequenceType='sentence')
+  of.write(sentenceLengthHtml)
+
+  # find overlong paragraphs, get mean and stdev of paragraph length, plot paragraph length
+  paragraphLengthHtml = analyseSentenceParagraphLength(tokenized['paragraphTokens'], 
+                                                       longParagraphCut, 
+                                                       sequenceType='paragraph')
+  of.write(paragraphLengthHtml)
+
+  # find most frequent words (not including stopwords)
+  mostFrequentWordsHtml = findFrequentWords(tokenized['wordTokensNoStopwords'], 
+                                            wordFreqCutFraction)
+  of.write(mostFrequentWordsHtml)
+
+  # # compare word frequency to corpus word frequency
+  # freqVersusCorpusHtml = compareFrequentWordsToCorpus(tokenized['wordTokens'], 
+  #                                                     corpusCategory)
+  # of.write(freqVersusCorpusHtml)
+
+  # find most frequent n-grams
+  mostFrequentNgramsHtml = findFrequentNgrams(tokenized['wordTokensNoPunctuation'], 
+                                              ngramMax, 
+                                              wordFreqCutFraction)
+  of.write(mostFrequentNgramsHtml)
+
+  # find adverbs
+  adverbHtml = findAdverbs(tokenized['sentenceTokens'], adverbFlag)
+  of.write(adverbHtml)
+
+  # find repeated sentence starts
+  sentStartHtml = findRepeatedSentenceStarts(tokenized['sentenceTokens'], ngramMax)
+  of.write(sentStartHtml)
+
+  # find similar words which are close together
+  levenshteinHtml = findCloseWords(tokenized['wordTokensNoPunctuation'], 
+                                   contextWindow, 
+                                   distanceType='levenshtein', 
+                                   levenshteinCutoff=levenshteinCutoff)
+  of.write(levenshteinHtml)
+
+  # find similar-sounding words which are close together
+  soundexHtml = findCloseWords(tokenized['wordTokensNoPunctuation'], 
+                               contextWindow, 
+                               distanceType='soundex')
+  of.write(soundexHtml)
+
+  # find filter words
+  filterHtml = findFilterWords(tokenized['sentenceTokens'])
+  of.write(filterHtml)
+  
+  # finish html file
+  writeHtmlFooter(of)
+  of.close()
+
+
+def loadProcessFile(filename):
+  '''
+  load and tokenize the contents of filename
+  '''
+
+  tokenized = {}
+
   ff = io.open(filename,'r',encoding="latin-1")
   raw = ff.read()
   ff.close()
@@ -44,60 +112,19 @@ def main():
   regex = re.compile('<.*?>')
   processed = re.sub(regex, '', processed)  # clean html tags
   processedLower = processed.lower()
-  wordTokens = nltk.word_tokenize(processedLower)  # break text into words
-  sentenceTokens = nltk.sent_tokenize(processed)  # break text into sentences
-  paragraphTokens = processed.split('\n\n')  # break text into paragraphs
+  tokenized['wordTokens'] = nltk.word_tokenize(processedLower)  # break text into words
+  tokenized['sentenceTokens'] = nltk.sent_tokenize(processed)  # break text into sentences
+  tokenized['paragraphTokens'] = processed.split('\n\n')  # break text into paragraphs
 
-  wordTokensNoStopwords = [w for w in wordTokens if w not in stopwords]
-  wordTokensNoPunctuation = [w for w in wordTokens if w not in punctuation]
+  tokenized['wordTokensNoStopwords'] = [w for w in tokenized['wordTokens'] if w not in stopwords]
+  tokenized['wordTokensNoPunctuation'] = [w for w in tokenized['wordTokens'] if w not in punctuation]
 
-  # find overlong sentences, get mean and stdev of sentence length, plot sentence length
-  sentenceLengthHtml = analyseSentenceParagraphLength(sentenceTokens, longSentenceCut, sequenceType='sentence')
-  of.write(sentenceLengthHtml)
-
-  # find overlong paragraphs, get mean and stdev of paragraph length, plot paragraph length
-  paragraphLengthHtml = analyseSentenceParagraphLength(paragraphTokens, longParagraphCut, sequenceType='paragraph')
-  of.write(paragraphLengthHtml)
-
-  # find most frequent words (not including stopwords)
-  mostFrequentWordsHtml = findFrequentWords(wordTokensNoStopwords, wordFreqCutFraction)
-  of.write(mostFrequentWordsHtml)
-
-  # # compare word frequency to corpus word frequency
-  # freqVersusCorpusHtml = compareFrequentWordsToCorpus(wordTokens, corpusCategory)
-  # of.write(freqVersusCorpusHtml)
-
-  # find most frequent n-grams
-  mostFrequentNgramsHtml = findFrequentNgrams(wordTokensNoPunctuation, ngramMax, wordFreqCutFraction)
-  of.write(mostFrequentNgramsHtml)
-
-  # find adverbs
-  adverbHtml = findAdverbs(sentenceTokens, adverbFlag)
-  of.write(adverbHtml)
-
-  # find repeated sentence starts
-  sentStartHtml = findRepeatedSentenceStarts(sentenceTokens, ngramMax)
-  of.write(sentStartHtml)
-
-  # find similar words which are close together
-  levenshteinHtml = findCloseWords(wordTokensNoPunctuation, contextWindow, distanceType='levenshtein', levenshteinCutoff=levenshteinCutoff)
-  of.write(levenshteinHtml)
-
-  # find similar-sounding words which are close together
-  soundexHtml = findCloseWords(wordTokensNoPunctuation, contextWindow, distanceType='soundex')
-  of.write(soundexHtml)
-
-  # find filter words
-  filterHtml = findFilterWords(sentenceTokens)
-  of.write(filterHtml)
-  
-  # finish html file
-  writeHtmlFooter(of)
-  of.close()
+  return tokenized
 
 
 def writeHtmlHeader(of):
   '''write the start of the html output file'''
+
   of.write('<!doctype html>\n')
   of.write('\n')
   of.write('<html lang="en">\n')
