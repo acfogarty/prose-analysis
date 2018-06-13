@@ -87,6 +87,10 @@ def main():
   soundexHtml = findCloseWords(wordTokensNoPunctuation, contextWindow, distanceType='soundex')
   of.write(soundexHtml)
 
+  # find filter words
+  filterHtml = findFilterWords(sentenceTokens)
+  of.write(filterHtml)
+  
   # finish html file
   writeHtmlFooter(of)
   of.close()
@@ -363,6 +367,43 @@ def findRepeatedSentenceStarts(sentenceTokens, ngramMax):
         sentStartHtml += '<p>' + ngram + ': ' + str(count) + '</p>\n'
 
   return sentStartHtml
+
+
+def findFilterWords(sentenceTokens):
+  '''highlight words which are in a specified list of filter words'''
+
+  filterHtml = '<h2>Filter words</h2>\n'
+
+  # read filter words from file
+  try:
+    ff = open('filter-words.txt')
+  except FileNotFoundError:
+    filterHtml += '<p>No filter words highlighted because file filter-words.txt not found</p>'
+    return filterHtml
+
+  filterWords = []
+  for line in ff:
+    filterWords.append(line.strip())
+
+  for sentence in sentenceTokens:
+
+    html = '<p>'
+    foundFilterWord = False  # only print sentences in which at least one filter word was found
+
+    wordTokens = nltk.word_tokenize(sentence)
+
+    for word in wordTokens:
+      if word.lower() in filterWords:
+        html += '<span style="color: red">' + word + '</span> ' 
+        foundFilterWord = True
+      else:
+        html += word + ' '
+
+    if foundFilterWord:
+      html += '</p>\n'
+      filterHtml += html
+
+  return filterHtml
 
 
 def soundex(word):
